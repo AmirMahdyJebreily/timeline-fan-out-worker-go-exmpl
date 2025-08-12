@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  app0:
+    build: .
+    ports:
+      - "8080:8080" 
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=admin
+      - DB_PASSWORD=admin
+      - DB_NAME=timeline_db
+      - REDIS_ADDR=redis:6379
+      - APP_PORT=:8080 
+    networks:
+      - timeline-net
+    depends_on:
+      - mysql
+      - redis
+
+  mysql0:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: qwerty123
+      MYSQL_DATABASE: timeline_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - timeline-net
+
+  redis0:
+    image: redis:7-alpine
+    command: redis-server --
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - timeline-net
+
+networks:
+  timeline-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
