@@ -15,8 +15,8 @@ services:
     networks:
       - timeline-net
     depends_on:
-      - mysql
-      - redis
+      - mysql0
+      - redis0
 
   mysql0:
     image: mysql:8.0

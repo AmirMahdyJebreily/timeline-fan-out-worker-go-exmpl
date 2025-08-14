@@ -1,6 +1,7 @@
 # --- Development/Debug Stage ---
 FROM golang:1.22-alpine AS dev-stage
 WORKDIR /app
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
 # --- Build Stage ---
 FROM golang:1.22-alpine AS builder
