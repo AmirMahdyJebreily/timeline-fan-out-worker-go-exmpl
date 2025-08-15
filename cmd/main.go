@@ -20,7 +20,6 @@ func main() {
 
 	fmt.Printf("Server is running on port %v...\n", port)
 
-	// 3. Start the server.
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
