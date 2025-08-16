@@ -47,6 +47,13 @@ BEGIN
     SET @insert_sql = NULL;
 END$$
 
+CREATE PROCEDURE sp_get_subscribers_by_user(IN p_user_id INT)
+BEGIN
+    SELECT subscriber_id
+    FROM subscriber_users
+    WHERE sender_id = p_user_id;
+END$$
+
 -- Insert's :
 CREATE PROCEDURE sp_insert_posts_bulk(IN posts_json JSON)
 BEGIN
