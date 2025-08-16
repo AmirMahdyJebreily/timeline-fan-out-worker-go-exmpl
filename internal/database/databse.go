@@ -62,5 +62,5 @@ func (repo *mysqlPostsRepository) InsertPost(ctx context.Context, posts []entiti
 }
 
 func (repo *mysqlPostsRepository) GetPostByIds(ctx context.Context, postIds []int) (posts []entities.Post, err error) {
-
+	return
 }
