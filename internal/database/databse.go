@@ -28,10 +28,7 @@ func (repo *mysqlPostsRepository) InsertPost(ctx context.Context, posts []entiti
 		return
 	}
 
-	txOptions := &sql.TxOptions{
-		Isolation: 0, // The 'Repeatable Read' is InnoDB default
-		ReadOnly:  false}
-	tx, err := repo.db.BeginTx(ctx, txOptions)
+	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
 		err = fmt.Errorf("Bgining transaction: %v", err)
 		log.Println(err)
