@@ -54,6 +54,30 @@ BEGIN
     WHERE sender_id = p_user_id;
 END$$
 
+CREATE PROCEDURE sp_get_subscribers_bulk(IN p_sender_ids_json JSON)
+BEGIN
+  IF p_sender_ids_json IS NULL OR JSON_LENGTH(p_sender_ids_json) = 0 THEN
+    SELECT CAST(NULL AS UNSIGNED) AS sender_id, CAST(NULL AS UNSIGNED) AS subscriber_id
+      WHERE FALSE;
+    RETURN;
+  END IF;
+
+  SELECT s.sender_id,
+         s.subscriber_id
+  FROM subscriber_users AS s
+  JOIN (
+    SELECT DISTINCT CAST(jt.sender_id AS UNSIGNED) AS sender_id
+    FROM JSON_TABLE(
+      p_sender_ids_json,
+      '$[*]' COLUMNS (
+        sender_id BIGINT PATH '$'
+      )
+    ) AS jt
+    WHERE jt.sender_id IS NOT NULL
+  ) AS ul ON s.sender_id = ul.sender_id
+  ORDER BY s.sender_id, s.subscriber_id;
+END$$
+
 -- Insert's :
 CREATE PROCEDURE sp_insert_posts_bulk(IN posts_json JSON)
 BEGIN
