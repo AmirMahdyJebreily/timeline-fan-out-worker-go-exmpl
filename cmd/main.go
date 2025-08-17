@@ -15,7 +15,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    port,
-		Handler: *router,
+		Handler: router,
 	}
 
 	fmt.Printf("Server is running on port %v...\n", port)

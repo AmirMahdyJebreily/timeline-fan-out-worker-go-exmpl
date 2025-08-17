@@ -20,7 +20,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func New(repo database.PostsRepository) *http.Handler {
+func New(repo database.PostsRepository) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/posts", handlers.CreatePost(repo))
@@ -30,5 +30,5 @@ func New(repo database.PostsRepository) *http.Handler {
 
 	handler = loggingMiddleware(handler)
 
-	return &handler
+	return handler
 }
