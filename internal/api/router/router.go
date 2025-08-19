@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/AmirMahdyJebreily/timeline-example/internal/api/handlers"
-	"github.com/AmirMahdyJebreily/timeline-example/internal/database"
+	dataAccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
 )
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -20,10 +20,10 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func New(repo database.PostsRepository) http.Handler {
+func New(dataAccess dataAccess.DataAccesser) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/posts", handlers.CreatePost(repo))
+	mux.HandleFunc("/posts", handlers.CreatePost(dataAccess))
 	mux.HandleFunc("/timeline", handlers.GetTimeline())
 
 	var handler http.Handler = mux
