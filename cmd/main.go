@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/AmirMahdyJebreily/timeline-example/internal/api/router"
+	"github.com/AmirMahdyJebreily/timeline-example/internal/cache"
 	dataAccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
 )
 
@@ -32,6 +33,14 @@ func main() {
 
 	dataAccesser := dataAccess.New(db)
 	r := router.New(dataAccesser)
+
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+
+	redisClient := cache.NewRedisClient(redisAddr)
+	timelineCache := cache.New(redisClient)
 
 	server := &http.Server{
 		Addr:    port,
