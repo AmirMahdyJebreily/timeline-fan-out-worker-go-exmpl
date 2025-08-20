@@ -20,7 +20,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func New(dataAccess dataAccess.DataAccesser) http.Handler {
+func New(dataAccess dataAccess.DataAccess) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/posts", handlers.CreatePost(dataAccess))

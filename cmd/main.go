@@ -31,8 +31,8 @@ func main() {
 		log.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 
-	dataAccesser := dataAccess.New(db)
-	r := router.New(dataAccesser)
+	DataAccess := dataAccess.New(db)
+	r := router.New(DataAccess)
 
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
