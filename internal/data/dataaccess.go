@@ -6,101 +6,73 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AmirMahdyJebreily/timeline-example/internal/data/utils"
 	"github.com/jmoiron/sqlx"
 )
 
-type dataAccess struct {
+type DataAccess struct {
 	db *sqlx.DB
 }
 
-type DataAccesser interface {
-	BulkInsertPosts(ctx context.Context, posts []Post) ([]uint, error)
-	BulkGetSubscribers(ctx context.Context, userIDs []uint) ([]SubscriberUser, error)
-	BulkGetPosts(ctx context.Context, postIDs []uint) ([]Post, error)
+func New(db *sqlx.DB) *DataAccess {
+	return &DataAccess{db: db}
 }
 
-func New(db *sqlx.DB) DataAccesser {
-	return &dataAccess{db: db}
-}
-
-func (da *dataAccess) BulkInsertPosts(ctx context.Context, posts []Post) ([]uint, error) {
-	if len(posts) == 0 {
-		return nil, nil
-	}
+func (da *DataAccess) InsertPost(ctx context.Context, post Post) (uint, error) {
 
 	tx, err := da.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrBeginTx, err)
+		return 0, fmt.Errorf(errBeginTx, err)
 	}
 
-	valueStrings := make([]string, 0, len(posts))
-	valueArgs := make([]interface{}, 0, len(posts)*2)
-	for _, post := range posts {
-		valueStrings = append(valueStrings, "(?, ?)")
-		valueArgs = append(valueArgs, post.SenderID, post.Content)
-	}
-	query := fmt.Sprintf("INSERT INTO posts (sender_id, content) VALUES %s", strings.Join(valueStrings, ","))
+	query := tx.Rebind(`
+		INSERT INTO posts (sender_id, content)
+		VALUES (:sender_id, :content)
+	`)
 
-	res, err := tx.ExecContext(ctx, query, valueArgs...)
+	res, err := tx.NamedExecContext(ctx, query, post)
 	if err != nil {
-		defer utils.RollbackOnError(tx)
-		return nil, fmt.Errorf(utils.ErrBulkInsertPosts, err)
+		defer RollbackOnError(tx)
+		return 0, fmt.Errorf(errInsertPosts, err)
 	}
 
-	firstID, err := res.LastInsertId()
+	id, err := res.LastInsertId()
 	if err != nil {
-		defer utils.RollbackOnError(tx)
-		return nil, fmt.Errorf(utils.ErrLastInsertID, err)
-	}
-
-	ids := make([]uint, len(posts))
-	for i := range posts {
-		ids[i] = uint(firstID) + uint(i)
+		RollbackOnError(tx)
+		return 0, fmt.Errorf(errGetInsertedPostId, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrCommitTx, err)
+		return 0, fmt.Errorf(errCommitTx, err)
 	}
-	return ids, nil
+	return uint(id), nil
 }
 
-func (da *dataAccess) BulkGetSubscribers(ctx context.Context, userIDs []uint) ([]SubscriberUser, error) {
-	if len(userIDs) == 0 {
-		return nil, nil
-	}
-
-	query := `SELECT sender_id, subscriber_id FROM subscriber_users WHERE sender_id IN (?)`
-
-	query, args, err := sqlx.In(query, userIDs)
-	if err != nil {
-		return nil, fmt.Errorf(utils.ErrConstructSubscribersQuery, err)
-	}
-
+func (da *DataAccess) GetSubscribers(ctx context.Context, userID uint) ([]uint, error) {
+	query := `SELECT subscriber_id FROM subscriber_users WHERE sender_id = ?`
 	tx, err := da.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrBeginTx, err)
+		return nil, fmt.Errorf(errBeginTx, err)
 	}
 
 	query = tx.Rebind(query)
 
-	var subscribers []SubscriberUser
-	err = tx.SelectContext(ctx, &subscribers, query, args...)
+	var subscribers []uint
+	err = tx.SelectContext(ctx, &subscribers, query, userID)
 	if err != nil {
-		defer utils.RollbackOnError(tx)
-		return nil, fmt.Errorf(utils.ErrSelectSubscribers, err)
+		RollbackOnError(tx)
+		return nil, fmt.Errorf(errSelectSubscribers, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrCommitTx, err)
+		return nil, fmt.Errorf(errCommitTx, err)
 	}
 
 	return subscribers, nil
 }
 
-func (da *dataAccess) BulkGetPosts(ctx context.Context, postIDs []uint) ([]Post, error) {
+func (da *DataAccess) BulkGetPosts(ctx context.Context, postIDs []uint) ([]Post, error) {
 	if len(postIDs) == 0 {
 		return nil, nil
 	}
@@ -115,15 +87,13 @@ func (da *dataAccess) BulkGetPosts(ctx context.Context, postIDs []uint) ([]Post,
 
 	query, args, err := sqlx.In(query, postIDs, orderedIDList)
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrConstructPostsQuery, err)
+		return nil, fmt.Errorf(errConstructPostsQuery, err)
 	}
 
 	tx, err := da.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrBeginTx, err)
+		return nil, fmt.Errorf(errBeginTx, err)
 	}
-
-	query = tx.Rebind(query)
 
 	var posts []Post
 
@@ -132,13 +102,13 @@ func (da *dataAccess) BulkGetPosts(ctx context.Context, postIDs []uint) ([]Post,
 		if err == sql.ErrNoRows {
 			return []Post{}, nil
 		}
-		defer utils.RollbackOnError(tx)
-		return nil, fmt.Errorf(utils.ErrSelectPosts, err)
+		defer RollbackOnError(tx)
+		return nil, fmt.Errorf(errSelectPosts, err)
 	}
 
 	err = tx.Commit()
 	if err != nil {
-		return nil, fmt.Errorf(utils.ErrCommitTx, err)
+		return nil, fmt.Errorf(errCommitTx, err)
 	}
 
 	return posts, nil

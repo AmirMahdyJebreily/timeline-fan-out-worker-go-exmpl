@@ -2,7 +2,6 @@ package dataaccess
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -23,36 +22,40 @@ func TestAddUserAndSubscriber(t *testing.T) {
 	da := New(db)
 	ctx := context.Background()
 
-	// Clean up tables before test
 	_, _ = db.Exec("DELETE FROM subscriber_users")
 	_, _ = db.Exec("DELETE FROM posts")
 	_, _ = db.Exec("DELETE FROM users")
 
-	// Add users
-	res, err := db.Exec("INSERT INTO users (id) VALUES (?), (?)", 101, 202)
+	const (
+		TEST_SENDER_ID    = 101
+		TEST_SUB_ID       = 202
+		USERS_COUNT       = 2
+		SUBSCRIBERS_COUNT = 1
+	)
+
+	res, err := db.Exec("INSERT INTO users (id) VALUES (?), (?)", TEST_SENDER_ID, TEST_SUB_ID)
 	if err != nil {
 		t.Fatalf("failed to insert users: %v", err)
 	}
+
 	rows, _ := res.RowsAffected()
-	if rows != 2 {
+	if rows != USERS_COUNT {
 		t.Fatalf("expected 2 users inserted, got %d", rows)
 	}
 
-	// Add subscriber relationship: 202 subscribes to 101
-	_, err = db.Exec("INSERT INTO subscriber_users (sender_id, subscriber_id) VALUES (?, ?)", 101, 202)
+	_, err = db.Exec("INSERT INTO subscriber_users (sender_id, subscriber_id) VALUES (?, ?)", TEST_SENDER_ID, TEST_SUB_ID)
 	if err != nil {
 		t.Fatalf("failed to insert subscriber: %v", err)
 	}
 
-	// Test retrieval
-	subs, err := da.BulkGetSubscribers(ctx, []uint{101})
+	subs, err := da.GetSubscribers(ctx, TEST_SENDER_ID)
 	if err != nil {
 		t.Fatalf("BulkGetSubscribers failed: %v", err)
 	}
-	if len(subs) != 1 {
+	if len(subs) != SUBSCRIBERS_COUNT {
 		t.Fatalf("expected 1 subscriber, got %d", len(subs))
 	}
-	if subs[0].SenderID != 101 || subs[0].SubscriberID != 202 {
+	if subs[0] != TEST_SUB_ID {
 		t.Fatalf("unexpected subscriber data: %+v", subs[0])
 	}
 }
@@ -61,26 +64,27 @@ func TestBulkInsertPostsAndGetPosts(t *testing.T) {
 	db := setupTestDB(t)
 	da := New(db)
 	ctx := context.Background()
+	const (
+		CONTENT = "Content"
+		COUNT   = 1
+	)
 
-	posts := []Post{}
-	max := 1000
-	for i := 0; i < max; i++ {
-		posts = append(posts, Post{SenderID: 101, Content: fmt.Sprintf("Content No.%v", i)})
-	}
-	ids, err := da.BulkInsertPosts(ctx, posts)
+	post := Post{SenderID: 101, Content: CONTENT}
+
+	id, err := da.InsertPost(ctx, post)
 	if err != nil {
 		t.Fatalf("BulkInsertPosts failed: %v", err)
 	}
-	if len(ids) != max {
-		t.Fatalf("expected %d ids, got %v", max, ids)
-	}
 
-	fetched, err := da.BulkGetPosts(ctx, ids)
+	fetched, err := da.BulkGetPosts(ctx, []uint{id})
 	if err != nil {
 		t.Fatalf("BulkGetPosts failed: %v", err)
 	}
-	if len(fetched) != max {
-		t.Fatalf("expected %d posts, got %d", max, len(fetched))
+	if len(fetched) > COUNT {
+		t.Fatalf("expected %d in content, got %d", COUNT, len(fetched))
+	}
+	if fetched[0].Content != CONTENT {
+		t.Fatalf("expected %v in content, got %v", CONTENT, fetched[0].Content)
 	}
 }
 
@@ -89,7 +93,7 @@ func TestBulkGetSubscribers_Empty(t *testing.T) {
 	da := New(db)
 	ctx := context.Background()
 
-	subs, err := da.BulkGetSubscribers(ctx, []uint{999999})
+	subs, err := da.GetSubscribers(ctx, 999999)
 	if err != nil {
 		t.Fatalf("BulkGetSubscribers failed: %v", err)
 	}
