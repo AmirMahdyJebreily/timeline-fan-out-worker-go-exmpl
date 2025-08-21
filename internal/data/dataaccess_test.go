@@ -71,7 +71,7 @@ func TestBulkInsertPostsAndGetPosts(t *testing.T) {
 
 	post := Post{SenderID: 101, Content: CONTENT}
 
-	id, err := da.InsertPost(ctx, post)
+	id, _, err := da.InsertPost(ctx, post)
 	if err != nil {
 		t.Fatalf("BulkInsertPosts failed: %v", err)
 	}
