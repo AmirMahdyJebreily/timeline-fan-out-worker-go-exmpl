@@ -32,7 +32,7 @@ func New(db *dataaccess.DataAccess, cache *cache.TimelineCache) *TimelineService
 	return instance
 }
 
-func (tl *TimelineService) NewPost(ctx context.Context, post dataaccess.Post) (uint, error) {
+func (tl *TimelineService) NewPost(ctx context.Context, post dataaccess.Post) (uint, time.Time, error) {
 	// errSubs := tl.PostToSubs(ctx, post.SenderID, id)
 	// if errSubs != nil {
 	// 	err = fmt.Errorf("%w", err, errSubs)
