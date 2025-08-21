@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,35 +18,47 @@ func New(db *sqlx.DB) *DataAccess {
 	return &DataAccess{db: db}
 }
 
-func (da *DataAccess) InsertPost(ctx context.Context, post Post) (uint, error) {
-
+func (da *DataAccess) InsertPost(ctx context.Context, post Post) (uint, time.Time, error) {
 	tx, err := da.db.BeginTxx(ctx, nil)
 	if err != nil {
-		return 0, fmt.Errorf(errBeginTx, err)
+		return 0, time.Time{}, fmt.Errorf(errBeginTx, err)
 	}
 
-	query := tx.Rebind(`
-		INSERT INTO posts (sender_id, content)
-		VALUES (:sender_id, :content)
-	`)
+	committed := false
+	defer func() {
+		if !committed {
+			_ = tx.Rollback()
+		}
+	}()
 
-	res, err := tx.NamedExecContext(ctx, query, post)
+	insertQuery := tx.Rebind(`
+        INSERT INTO posts (sender_id, content)
+        VALUES (:sender_id, :content)
+    `)
+
+	res, err := tx.NamedExecContext(ctx, insertQuery, post)
 	if err != nil {
-		defer RollbackOnError(tx)
-		return 0, fmt.Errorf(errInsertPosts, err)
+		return 0, time.Time{}, fmt.Errorf(errInsertPosts, err)
 	}
 
-	id, err := res.LastInsertId()
+	lastID, err := res.LastInsertId()
 	if err != nil {
-		RollbackOnError(tx)
-		return 0, fmt.Errorf(errGetInsertedPostId, err)
+		return 0, time.Time{}, fmt.Errorf(errGetInsertedPostId, err)
+	}
+	insertedID := uint(lastID)
+
+	var createdAt time.Time
+	selectQuery := tx.Rebind(`SELECT created_at FROM posts WHERE id = ?`)
+	if err := tx.GetContext(ctx, &createdAt, selectQuery, insertedID); err != nil {
+		return 0, time.Time{}, fmt.Errorf("failed to fetch created_at for post %d: %w", insertedID, err)
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return 0, fmt.Errorf(errCommitTx, err)
+	if err := tx.Commit(); err != nil {
+		return 0, time.Time{}, fmt.Errorf(errCommitTx, err)
 	}
-	return uint(id), nil
+	committed = true
+
+	return insertedID, createdAt, nil
 }
 
 func (da *DataAccess) GetSubscribers(ctx context.Context, userID uint) ([]uint, error) {
