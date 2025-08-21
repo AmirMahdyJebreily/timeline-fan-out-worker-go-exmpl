@@ -6,9 +6,10 @@ import (
 	"net/http"
 
 	dataaccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
+	"github.com/AmirMahdyJebreily/timeline-example/internal/timeline"
 )
 
-func CreatePost(da dataaccess.DataAccess) http.HandlerFunc {
+func CreatePost(tl *timeline.TimelineService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -24,13 +25,11 @@ func CreatePost(da dataaccess.DataAccess) http.HandlerFunc {
 
 		ctx := r.Context()
 
-		postID, err := da.InsertPost(ctx, post)
+		postID, err := tl.NewPost(ctx, post)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Insert failed: %v", err), http.StatusInternalServerError)
 			return
 		}
-
-		// TOD: Timeline service
 
 		responseJSON, err := json.Marshal(postID)
 		if err != nil {

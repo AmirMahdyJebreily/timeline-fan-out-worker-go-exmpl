@@ -12,6 +12,7 @@ import (
 	"github.com/AmirMahdyJebreily/timeline-example/internal/api/router"
 	"github.com/AmirMahdyJebreily/timeline-example/internal/cache"
 	dataAccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
+	"github.com/AmirMahdyJebreily/timeline-example/internal/timeline"
 )
 
 func main() {
@@ -31,8 +32,7 @@ func main() {
 		log.Fatalf("Failed to connect to MySQL: %v", err)
 	}
 
-	DataAccess := dataAccess.New(db)
-	r := router.New(DataAccess)
+	dataAccess := dataAccess.New(db)
 
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
@@ -42,6 +42,9 @@ func main() {
 	redisClient := cache.NewRedisClient(redisAddr)
 	timelineCache := cache.New(redisClient)
 
+	tl := timeline.New(dataAccess, timelineCache)
+
+	r := router.New(tl)
 	server := &http.Server{
 		Addr:    port,
 		Handler: r,
