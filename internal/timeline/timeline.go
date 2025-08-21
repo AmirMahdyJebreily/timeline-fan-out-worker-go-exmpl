@@ -11,8 +11,8 @@ import (
 )
 
 type TimelineService struct {
-	db    dataaccess.DataAccess
-	cache cache.TimelineCache
+	db    *dataaccess.DataAccess
+	cache *cache.TimelineCache
 }
 
 var (
@@ -22,7 +22,7 @@ var (
 
 const defaultMaxConcurrency = 50
 
-func New(db dataaccess.DataAccess, cache cache.TimelineCache) *TimelineService {
+func New(db *dataaccess.DataAccess, cache *cache.TimelineCache) *TimelineService {
 	once.Do(func() {
 		instance = &TimelineService{
 			db:    db,
