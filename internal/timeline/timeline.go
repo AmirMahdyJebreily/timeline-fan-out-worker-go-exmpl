@@ -3,20 +3,23 @@ package timeline
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
 	"github.com/AmirMahdyJebreily/timeline-example/internal/cache"
 	dataaccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
+	"github.com/AmirMahdyJebreily/timeline-example/internal/workers"
 )
 
 type TimelineService struct {
-	db    *dataaccess.DataAccess
-	cache *cache.TimelineCache
+	db      *dataaccess.DataAccess
+	cache   *cache.TimelineCache
+	workers *workers.WorkerPool
 }
 
 var (
-	instance *TimelineService
+	instance TimelineService
 	once     sync.Once
 )
 
@@ -24,12 +27,12 @@ const defaultMaxConcurrency = 50
 
 func New(db *dataaccess.DataAccess, cache *cache.TimelineCache) *TimelineService {
 	once.Do(func() {
-		instance = &TimelineService{
+		instance = TimelineService{
 			db:    db,
 			cache: cache,
 		}
 	})
-	return instance
+	return &instance
 }
 
 func (tl *TimelineService) NewPost(ctx context.Context, post dataaccess.Post) (uint, time.Time, error) {
@@ -94,4 +97,26 @@ sendLoop:
 	// 	}()
 	// }
 	//return nil
+}
+
+func (tl *TimelineService) fanoutWorkerOnce(ctx context.Context, workerID int, jobs <-chan uint, wg *sync.WaitGroup, postID uint, score float64, errCh chan<- error) {
+	defer wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case sub, ok := <-jobs:
+			if !ok {
+				return
+			}
+			if err := tl.cache.AddPostToTimeline(ctx, sub, postID, score); err != nil {
+				log.Printf("fan-out worker %d: subscriber=%d add failed: %v", workerID, sub, err)
+				select {
+				case errCh <- fmt.Errorf("worker %d failed in add post timeline to subscriber=%d: %w", workerID, sub, err):
+				default:
+				}
+				return
+			}
+		}
+	}
 }
