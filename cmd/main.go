@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -26,6 +27,7 @@ func main() {
 	if port == "" {
 		port = DEFAULT_APP_PORT
 	}
+	port = strings.Trim(port, " ")
 
 	dbUser := os.Getenv("DB_USER")
 	dbPass := os.Getenv("DB_PASSWORD")
@@ -33,6 +35,7 @@ func main() {
 	dbName := os.Getenv("DB_NAME")
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true&multiStatements=true", dbUser, dbPass, dbHost, dbName)
+	//dsn := "admin:admin@tcp(localhost:3306)/timeline_db?parseTime=true&multiStatements=true"
 	db, err := sqlx.Connect("mysql", dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to MySQL: %v", err)
