@@ -6,7 +6,7 @@ An example timeline fan out service with folanf using my-sql and redis
 use dokcer compose :
 ```bash
 #Debug
-docker-compose up --build app
+docker-compose up --build app0
 
 
 # Production
