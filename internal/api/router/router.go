@@ -24,7 +24,7 @@ func New(tl *timeline.TimelineService) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/posts", handlers.CreatePost(tl))
-	mux.HandleFunc("/timeline", handlers.GetTimeline())
+	mux.HandleFunc("/timeline", handlers.GetTimeline(tl))
 
 	var handler http.Handler = mux
 

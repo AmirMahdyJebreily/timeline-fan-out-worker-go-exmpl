@@ -82,3 +82,18 @@ func (tl *TimelineService) fanout(ctx context.Context, userID, postID uint, scor
 		return nil
 	}
 }
+
+func (tl *TimelineService) GetTimeLine(ctx context.Context, userId, limit, offset uint) ([]dataaccess.Post, error) {
+	postIds, err := tl.cache.GetTimelinePostIDs(ctx, userId, int64(offset), int64(offset)+int64(limit))
+	if err != nil {
+		err = fmt.Errorf("failed to get user=%d timeline:%w", userId, err)
+		return nil, err
+	}
+
+	posts, err := tl.db.BulkGetPosts(ctx, postIds)
+	if err != nil {
+		err = fmt.Errorf("failed to get user=%d posts details in loading timeline:%w", userId, err)
+		return nil, err
+	}
+	return posts, nil
+}
