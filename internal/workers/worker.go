@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -48,6 +49,14 @@ func (wp *WorkerPool) InitWorkers(max bool) error {
 	if !max {
 		count = wp.minWorkers
 	}
+
+	go func() {
+		for err := range wp.errCh {
+			if err != nil {
+				log.Printf("[WorkerPool error] %v\n", err)
+			}
+		}
+	}()
 	for i := uint(0); i < count; i++ {
 		wp.wg.Add(1)
 		go func(id uint) {

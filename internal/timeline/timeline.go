@@ -70,6 +70,7 @@ sendLoop:
 			tl.workers.SubmitJob(tl.fanout(ctx, sub, postId, score))
 		}
 	}
+
 	return nil
 }
 
