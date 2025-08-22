@@ -2,6 +2,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "env": {
+                "DB_HOST":"localhost",
+                "DB_USER":"admin",
+                "DB_PASSWORD":"admin",
+                "DB_NAME":"timeline_db",
+                "REDIS_ADDR":"127.0.0.1:6379",
+                "APP_PORT":":8080",
+            },
+            "program": "${workspaceFolder}/cmd/"
+        },
+
+        {
             "name": "Connect to App",
             "type": "go",
             "request": "attach",

@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:8080" 
     environment:
-      - DB_HOST=mysql
+      - DB_HOST=mysql0
       - DB_USER=admin
       - DB_PASSWORD=admin
       - DB_NAME=timeline_db
