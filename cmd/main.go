@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,17 +9,22 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/AmirMahdyJebreily/timeline-example/internal/api/router"
 	"github.com/AmirMahdyJebreily/timeline-example/internal/cache"
 	dataAccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
 	"github.com/AmirMahdyJebreily/timeline-example/internal/timeline"
+	"github.com/AmirMahdyJebreily/timeline-example/internal/workers"
 )
 
+const DEFAULT_APP_PORT = ":8080"
+
 func main() {
+
 	port := os.Getenv("APP_PORT")
 	if port == "" {
-		port = ":8080" // fallback default
+		port = DEFAULT_APP_PORT
 	}
 
 	dbUser := os.Getenv("DB_USER")
@@ -39,10 +45,22 @@ func main() {
 		redisAddr = "localhost:6379"
 	}
 
-	redisClient := cache.NewRedisClient(redisAddr)
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: redisAddr,
+		DB:   0,
+	})
 	timelineCache := cache.New(redisClient)
 
-	tl := timeline.New(dataAccess, timelineCache)
+	workerPool, err := workers.New(context.Background(), 50, 25, 200)
+	if err != nil {
+		log.Fatalf("Failed to create singleton worker pool: %v", err)
+	}
+
+	if err = workerPool.InitWorkers(false); err != nil {
+		log.Fatalf("Failed to initialize the worker pool: %v", err)
+	}
+
+	tl := timeline.New(dataAccess, timelineCache, workerPool)
 
 	r := router.New(tl)
 	server := &http.Server{

@@ -22,33 +22,32 @@ var (
 	once     sync.Once
 )
 
-const defaultMaxConcurrency = 50
-
-func New(db *dataaccess.DataAccess, cache *cache.TimelineCache) *TimelineService {
+func New(db *dataaccess.DataAccess, cache *cache.TimelineCache, workers *workers.WorkerPool) *TimelineService {
 	once.Do(func() {
 		instance = TimelineService{
-			db:    db,
-			cache: cache,
+			db:      db,
+			cache:   cache,
+			workers: workers,
 		}
 	})
 	return &instance
 }
 
-func (tl *TimelineService) NewPost(ctx context.Context, post dataaccess.Post) (uint, time.Time, error) {
+func (tl *TimelineService) NewPost(ctx context.Context, post dataaccess.Post) (uint, error) {
 	id, at, err := tl.db.InsertPost(ctx, post)
 	if err != nil {
-		return 0, time.Time{}, err
+		return 0, err
 	}
 
 	select {
 	case <-ctx.Done():
-		return id, at, ctx.Err()
+		return id, ctx.Err()
 	default:
 	}
 
 	go tl.PostToSubs(context.Background(), post.SenderID, id, at)
 
-	return id, at, nil
+	return id, nil
 }
 
 func (tl *TimelineService) PostToSubs(ctx context.Context, userId, postId uint, at time.Time) error {

@@ -25,7 +25,7 @@ func CreatePost(tl *timeline.TimelineService) http.HandlerFunc {
 
 		ctx := r.Context()
 
-		postID, _, err := tl.NewPost(ctx, post)
+		postID, err := tl.NewPost(ctx, post)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Insert failed: %v", err), http.StatusInternalServerError)
 			return
