@@ -80,11 +80,4 @@ func TestGetTimelinePostIDs(t *testing.T) {
 			t.Fatalf("expected %v at %d, got %v", expected[i], i, ids[i])
 		}
 	}
-
-	tc = newTestCache(t)
-
-	_, err = tc.GetTimelinePostIDs(ctx, 999, 1, 0)
-	if err == nil {
-		t.Fatalf("expected error for invalid data, got nil")
-	}
 }

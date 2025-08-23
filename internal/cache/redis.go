@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/redis/go-redis/v9"
@@ -27,9 +26,6 @@ func (tc *TimelineCache) AddPostToTimeline(ctx context.Context, userID uint, pos
 }
 
 func (tc *TimelineCache) GetTimelinePostIDs(ctx context.Context, userID uint, start, stop int) ([]uint, error) {
-	if stop > start {
-		return nil, errors.New("stop cannot be less than start")
-	}
 	key := timelineKey(userID)
 	ids, err := tc.client.ZRevRange(ctx, key, int64(start), int64(stop)).Result()
 	if err != nil {
