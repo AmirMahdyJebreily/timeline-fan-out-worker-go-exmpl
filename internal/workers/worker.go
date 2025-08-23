@@ -16,7 +16,7 @@ type WorkerPool struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	jobs         chan Job
-	errCh        chan error
+	ErrChannel   chan error
 	wg           sync.WaitGroup
 	shutdownOnce sync.Once
 }
@@ -38,7 +38,7 @@ func New(ctx context.Context, maximumWorkersCount, minimumWorkersCount, cap uint
 			minWorkers: minimumWorkersCount,
 			maxWorkers: maximumWorkersCount,
 			jobs:       make(chan Job, cap),
-			errCh:      make(chan error, int(maximumWorkersCount)),
+			ErrChannel: make(chan error, int(maximumWorkersCount)),
 		}
 	})
 	return &instance, nil
@@ -51,7 +51,7 @@ func (wp *WorkerPool) InitWorkers(max bool) error {
 	}
 
 	go func() {
-		for err := range wp.errCh {
+		for err := range wp.ErrChannel {
 			if err != nil {
 				log.Printf("[WorkerPool error] %v\n", err)
 			}
@@ -80,7 +80,7 @@ func (wp *WorkerPool) worker(id uint) {
 				defer func() {
 					if r := recover(); r != nil {
 						select {
-						case wp.errCh <- fmt.Errorf("worker %d panic: %v", id, r):
+						case wp.ErrChannel <- fmt.Errorf("worker %d panic: %v", id, r):
 						default:
 						}
 					}
@@ -88,7 +88,7 @@ func (wp *WorkerPool) worker(id uint) {
 				err := job()
 				if err != nil {
 					select {
-					case wp.errCh <- fmt.Errorf("worker %d: %w", id, err):
+					case wp.ErrChannel <- fmt.Errorf("worker %d: %w", id, err):
 					default:
 					}
 				}
@@ -111,6 +111,6 @@ func (wp *WorkerPool) Shutdown() {
 		wp.cancel()
 		close(wp.jobs)
 		wp.wg.Wait()
-		close(wp.errCh)
+		close(wp.ErrChannel)
 	})
 }
