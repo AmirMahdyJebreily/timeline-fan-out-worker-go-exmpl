@@ -1,15 +1,17 @@
-package workers
+package workers_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/AmirMahdyJebreily/timeline-example/internal/workers"
 )
 
 func TestWorkerPool_EndToEnd(t *testing.T) {
 	ctx := context.Background()
-	wp, err := New(ctx, 4, 2, 200)
+	wp, err := workers.New(ctx, 4, 2, 200)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -47,7 +49,7 @@ func TestWorkerPool_EndToEnd(t *testing.T) {
 	}
 
 	select {
-	case e := <-wp.errCh:
+	case e := <-wp.ErrChannel:
 		if e == nil {
 			t.Fatalf("received nil error")
 		}
