@@ -26,8 +26,8 @@ func (tc *TimelineCache) AddPostToTimeline(ctx context.Context, userID uint, pos
 	return err
 }
 
-func (tc *TimelineCache) GetTimelinePostIDs(ctx context.Context, userID uint, start, stop uint) ([]uint, error) {
-	if stop < start {
+func (tc *TimelineCache) GetTimelinePostIDs(ctx context.Context, userID uint, start, stop int) ([]uint, error) {
+	if stop > start {
 		return nil, errors.New("stop cannot be less than start")
 	}
 	key := timelineKey(userID)

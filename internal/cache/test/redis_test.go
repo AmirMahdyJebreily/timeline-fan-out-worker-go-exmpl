@@ -35,7 +35,7 @@ func TestAddPostToTimeline(t *testing.T) {
 	_ = tc.AddPostToTimeline(ctx, 1, 100, now+1000)
 	_ = tc.AddPostToTimeline(ctx, 1, 200, now+500)
 
-	ids, err := tc.GetTimelinePostIDs(ctx, 1, 1, 0)
+	ids, err := tc.GetTimelinePostIDs(ctx, 1, 0, -1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
