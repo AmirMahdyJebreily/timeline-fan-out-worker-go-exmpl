@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -25,7 +26,8 @@ func CreatePost(tl *timeline.TimelineService) http.HandlerFunc {
 		var post dataaccess.Post
 
 		if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
-			http.Error(w, fmt.Sprintf("Invalid JSON: %v", err), http.StatusBadRequest)
+			log.Println(fmt.Errorf("failed to parsing JSON from request body in POST /posts handler: %w", err))
+			http.Error(w, "Invalid JSON\nMissing one of \"sender_id\" or \"content\" fealds", http.StatusBadRequest)
 			return
 		}
 
@@ -33,7 +35,8 @@ func CreatePost(tl *timeline.TimelineService) http.HandlerFunc {
 
 		postID, err := tl.NewPost(ctx, post)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Insert failed: %v", err), http.StatusInternalServerError)
+			log.Println(fmt.Errorf("failed to insert new post %v in POST /posts handler: %w", post, err))
+			http.Error(w, "Insertion failed", http.StatusInternalServerError)
 			return
 		}
 
@@ -41,6 +44,7 @@ func CreatePost(tl *timeline.TimelineService) http.HandlerFunc {
 		w.WriteHeader(http.StatusCreated)
 
 		if err := json.NewEncoder(w).Encode(postID); err != nil {
+			log.Println(fmt.Errorf("failed to parsing json response POST /posts handler: %w", err))
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		}
 	}
@@ -60,6 +64,7 @@ func GetTimeline(tl *timeline.TimelineService) http.HandlerFunc {
 		if limitStr != "" {
 			l, err := strconv.Atoi(limitStr)
 			if err != nil || l < 1 || l > 100 {
+				log.Println(fmt.Errorf("failed parsing 'offset' paramater from uri query in GET /timeline handler: %w", err))
 				http.Error(w, "Invalid 'limit' parameter", http.StatusBadRequest)
 				return
 			}
@@ -71,7 +76,8 @@ func GetTimeline(tl *timeline.TimelineService) http.HandlerFunc {
 		if offsetStr != "" {
 			o, err := strconv.Atoi(offsetStr)
 			if err != nil || o < 0 {
-				http.Error(w, "Invalid 'offset' parameter", http.StatusBadRequest)
+				log.Println(fmt.Errorf("failed parsing 'offset' paramater from uri query in GET /timeline handler: %w", err))
+				http.Error(w, "Invalid 'offset' parameter: %w", http.StatusBadRequest)
 				return
 			}
 			offset = uint(o)
@@ -84,6 +90,7 @@ func GetTimeline(tl *timeline.TimelineService) http.HandlerFunc {
 		}
 		userId, err := strconv.Atoi(userIdStr)
 		if err != nil || userId < 1 {
+			log.Println(fmt.Errorf("failed to parsing 'userId' parameter in GET /timeline: %w", err))
 			http.Error(w, "Invalid userId parameter", http.StatusBadRequest)
 			return
 		}
@@ -91,11 +98,16 @@ func GetTimeline(tl *timeline.TimelineService) http.HandlerFunc {
 		ctx := r.Context()
 
 		posts, err := tl.GetTimeLine(ctx, uint(userId), limit, offset)
+		if err != nil {
+			log.Println(fmt.Errorf("failed to get user=%d timeline from GET /timeline handler: %w", userId, err))
+			http.Error(w, "Error in get user's timeline", http.StatusInternalServerError)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
 		if err := json.NewEncoder(w).Encode(posts); err != nil {
+			log.Println(fmt.Errorf("failed to parsing json response in GET /timeline: %w", err))
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		}
 	}
