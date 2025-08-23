@@ -1,9 +1,10 @@
-package dataaccess
+package dataaccess_test
 
 import (
 	"context"
 	"testing"
 
+	dataaccess "github.com/AmirMahdyJebreily/timeline-example/internal/data"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
@@ -19,7 +20,7 @@ func setupTestDB(t *testing.T) *sqlx.DB {
 
 func TestAddUserAndSubscriber(t *testing.T) {
 	db := setupTestDB(t)
-	da := New(db)
+	da := dataaccess.New(db)
 	ctx := context.Background()
 
 	_, _ = db.Exec("DELETE FROM subscriber_users")
@@ -62,14 +63,14 @@ func TestAddUserAndSubscriber(t *testing.T) {
 
 func TestBulkInsertPostsAndGetPosts(t *testing.T) {
 	db := setupTestDB(t)
-	da := New(db)
+	da := dataaccess.New(db)
 	ctx := context.Background()
 	const (
 		CONTENT = "Content"
 		COUNT   = 1
 	)
 
-	post := Post{SenderID: 101, Content: CONTENT}
+	post := dataaccess.Post{SenderID: 101, Content: CONTENT}
 
 	id, _, err := da.InsertPost(ctx, post)
 	if err != nil {
@@ -90,7 +91,7 @@ func TestBulkInsertPostsAndGetPosts(t *testing.T) {
 
 func TestBulkGetSubscribers_Empty(t *testing.T) {
 	db := setupTestDB(t)
-	da := New(db)
+	da := dataaccess.New(db)
 	ctx := context.Background()
 
 	subs, err := da.GetSubscribers(ctx, 999999)
